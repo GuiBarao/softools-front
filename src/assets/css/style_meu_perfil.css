@@ -1,0 +1,121 @@
+/* Reset básico */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    background-color: var(--cinza);
+    color: #333;
+}
+
+/* Variáveis de cores */
+:root {
+    --azul-claro: #1D49C4;
+    --cinza: #F9FAFB;
+    --cinza-escuro: #cccaca;
+    --azul-escuro: #1E3A8A;
+    --branco: #FFFFFF;
+    --laranja: #F97316;
+}
+
+/* Seção "meu perfil" */
+.meu-perfil {
+    display: flex;
+    align-items: center;
+    margin-top: 20px;
+}
+
+.meu-perfil img {
+    margin-right: 20px;
+    width: 50px;
+    height: auto;
+    display: block;
+}
+
+.meu-perfil p {
+    font-size: 35px;
+    margin: 0;
+    font-weight: 700;
+    color: #333;
+}
+
+/* Container do menu lateral com fundo cinza */
+.menu-navegacao {
+    background-color: var(--cinza);
+    border-radius: 8px;
+    width: 100%;
+}
+
+/* Bloco do menu de navegação */
+.lateral .menu-navegacao {
+    background-color: #F1F5F9;
+    padding: 20px;
+    border-radius: 8px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Lista em linha */
+.menu-navegacao ul {
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0;
+    margin: 0;
+}
+
+/* Estilo dos itens */
+.menu-navegacao ul li {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    font-size: 16px;
+    font-weight: 600;
+    color: #888;
+    /* cor do texto dos não ativos */
+    padding: 8px 8px;
+    border-radius: 8px;
+    transition: 0.3s;
+    cursor: pointer;
+}
+
+/* Item ativo */
+.menu-navegacao ul li:hover {
+    background-color: white;
+    /* muda o fundo */
+    color: black;
+    /* muda a cor do texto */
+    border-radius: 8px;
+    /* deixa arredondado */
+    transition: all 0.3s ease;
+    /* suaviza a transição */
+}
+
+/*area de dados*/
+
+#main {
+    width: 100%;
+    height: auto;
+    border: #cccaca solid 2px;
+    border-radius: 5px;
+    padding: 10px;
+}
+
+#main .info,
+#editar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#main #editar {
+    padding: 0 8px;
+    border: var(--cinza-escuro) solid 2px;
+    border-radius: 5px;
+}
+
+#main #editar img {
+    width: 30px;
+    height: auto;
+    margin-right: 10px;
+}

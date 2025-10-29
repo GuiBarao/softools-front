@@ -1,0 +1,83 @@
+/* Variáveis de cores */
+:root {
+  --azul-claro: #1D49C4;
+  --cinza: #F9FAFB;
+  --cinza-escuro: #cccaca;
+  --azul-escuro: #1E3A8A;
+  --branco: #FFFFFF;
+  --laranja: #F97316;
+}
+
+/* Estilização do cabeçalho */
+header {
+  background-color: var(--azul-escuro);
+  padding: 20px 65px;
+}
+
+/* Conteúdo do cabeçalho */
+header .conteudo-cabecalho {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+}
+
+/* Logo */
+header .conteudo-cabecalho .logo img {
+  width: 200px;
+  height: auto;
+  display: block;
+  cursor: pointer;
+}
+
+/* Menu lateral do cabeçalho */
+.conteudo-cabecalho nav {
+  margin-left: auto;
+}
+
+.conteudo-cabecalho nav ul {
+  display: flex;
+  gap: 40px;
+}
+
+.conteudo-cabecalho nav ul li {
+  list-style: none;
+}
+
+.conteudo-cabecalho nav ul a {
+  /*a tag vem de router-link por padrao*/
+  text-decoration: none;
+  color: inherit;
+}
+
+.conteudo-cabecalho nav a:hover {
+  transform: scale(1.1);
+}
+
+.conteudo-cabecalho nav ul li .entrar {
+  color: var(--laranja);
+}
+
+.conteudo-cabecalho nav ul .entrar {
+  background-color: white;
+  border-radius: 8px;
+  border: var(--laranja) solid 2px;
+  padding: 8px 35px;
+  cursor: pointer;
+}
+
+.conteudo-cabecalho nav ul .cadastrar {
+  background-color: var(--laranja);
+  color: white;
+  border-radius: 8px;
+  border: var(--laranja) solid 2px;
+  padding: 8px 25px;
+  cursor: pointer;
+}
+
+main {
+  width: 100%;
+  height: auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

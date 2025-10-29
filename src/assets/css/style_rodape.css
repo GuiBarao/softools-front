@@ -1,0 +1,52 @@
+/* Estilização do rodape */
+footer {
+    background-color: #111827;
+    color: white;
+    bottom: 0;
+    position: relative;
+    width: 100%;
+    margin-top: 50px;
+}
+
+/* Conteúdo do rodape */
+footer .conteudo-rodape {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-left: 3%;
+    margin-right: 3px;
+}
+
+/* Logo */
+footer .conteudo-rodape .logo img {
+    width: 150px;
+    height: auto;
+    display: block;
+}
+
+/* Menu lateral do rodape */
+.conteudo-rodape nav {
+    margin-left: auto;
+    font-size: 12px;
+    font-weight: lighter;
+}
+
+.conteudo-rodape nav ul {
+    display: flex;
+    justify-content: center;
+}
+
+.conteudo-rodape nav ul li {
+    list-style: none;
+}
+
+.conteudo-rodape nav ul .origem {
+    text-align: center;
+    padding: 0 60px;
+    margin-left: 16%;
+}
+
+.conteudo-rodape nav ul .desenvolvedores {
+    padding: 0 20px;
+    margin-left: 10%;
+}

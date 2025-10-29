@@ -1,0 +1,128 @@
+/* Reset básico */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+}
+
+/* Variáveis de cores */
+:root {
+  --azul-claro: #1D49C4;
+  --cinza: #F9FAFB;
+  --cinza-escuro: #cccaca;
+  --azul-escuro: #1E3A8A;
+  --branco: #FFFFFF;
+  --laranja: #F97316;
+}
+
+/* Estilização do cabeçalho */
+header {
+  background-color: var(--azul-escuro);
+  padding: 20px 65px;
+}
+
+/* Conteúdo do cabeçalho */
+header .conteudo-cabecalho {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+}
+
+/* Logo */
+header .conteudo-cabecalho .logo img {
+  width: 200px;
+  height: auto;
+  display: block;
+  cursor: pointer;
+}
+
+/* Campo de pesquisa */
+.pesquisa {
+  flex-grow: 1;
+  /* ocupa o espaço restante */
+  margin-left: 20%;
+  position: relative;
+}
+
+.pesquisa .icone-lupa {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3%;
+  height: auto;
+  opacity: 0.5;
+  left: 2%;
+}
+
+.pesquisa input {
+  width: 100%;
+  max-width: 400px;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1.5px solid var(--azul-claro);
+  font-size: 16px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  padding-left: 6%;
+}
+
+.pesquisa input:focus {
+  border-color: var(--laranja);
+  box-shadow: 0 0 5px var(--laranja);
+}
+
+/* Menu lateral do cabeçalho */
+.conteudo-cabecalho .menu-lateral {
+  margin-left: auto;
+  /* empurra o menu pro canto direito */
+}
+
+.conteudo-cabecalho .menu-lateral ul {
+  display: flex;
+  align-items: center;
+  list-style: none;
+  gap: 60px;
+}
+
+.conteudo-cabecalho .menu-lateral ul li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* espaçamento entre ícone e texto */
+  cursor: pointer;
+}
+
+.conteudo-cabecalho .menu-lateral ul li img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+/* Estilo específico para o item "perfil" */
+.conteudo-cabecalho .menu-lateral ul #perfil {
+  padding: 5px 18px;
+  background-color: var(--branco);
+  border: 3px solid var(--laranja);
+  border-radius: 8px;
+}
+
+.conteudo-cabecalho .menu-lateral ul #perfil a {
+  color: var(--laranja);
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: lighter;
+}
+
+.conteudo-cabecalho .menu-lateral ul li:hover {
+  transform: scale(1.1);
+}
+
+.conteudo-cabecalho .menu-lateral ul li a {
+  color: var(--branco);
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: lighter;
+}
