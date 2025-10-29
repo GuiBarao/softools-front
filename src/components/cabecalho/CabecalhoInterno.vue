@@ -18,10 +18,6 @@
                 <img src="../../../public/img/carrinho.png" alt="">
                 <a href="#">Carrinho</a>
             </li>
-            <li>
-                <img src="../../../public/img/favoritos.png" alt="">
-                <a href="#">Favoritos</a>
-            </li>
             <li id="perfil" >
                 <img src="../../../public/img/perfil-laranja.png" alt="">
                 <router-link to="/meuperfil">Perfil</router-link>

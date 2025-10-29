@@ -50,7 +50,7 @@
     import CabecalhoInterno from '../cabecalho/CabecalhoInterno.vue'
 
   export default {
-    name: 'MeuPerfil',//nome do componente exportado
+    name: 'MeuPerfil',
 
     components: {
         CabecalhoInterno
