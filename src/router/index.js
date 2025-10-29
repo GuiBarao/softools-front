@@ -13,6 +13,8 @@ import MeuPerfil from '../components/perfil_usuario/MeuPerfil.vue'
 
 import DetalheFerramenta from '../components/ferramentas/DetalheFerramenta.vue'
 
+import MeuCarrinho from '@/components/ferramentas/MeuCarrinho.vue'
+
 
 const routes = [
   { path: '/', 
@@ -39,12 +41,16 @@ const routes = [
     name: 'MeuPerfil', 
     component: MeuPerfil 
   },
-  
   { 
     path: '/ferramenta/:id', 
     name: 'DetalheFerramenta',
     component: DetalheFerramenta
-  }
+  },
+  { 
+    path: '/carrinho', 
+    name: 'MeuCarrinho',
+    component: MeuCarrinho
+  },
 ]
 
 const router = createRouter({

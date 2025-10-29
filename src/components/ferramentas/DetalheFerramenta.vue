@@ -46,8 +46,12 @@
               <span>/ dia</span>
             </div>
 
-            <button class="botao-alugar-detalhe">
-              Adicionar ao Carrinho
+            <button 
+              @click="adicionarItem"
+              :disabled="adicionandoAoCarrinho"
+              class="botao-alugar-detalhe"
+            >
+              {{ textoBotao }}
             </button>
           </div>
 
@@ -59,8 +63,10 @@
 
 <script>
 import CabecalhoInterno from "../cabecalho/CabecalhoInterno";
-// Importamos o *serviço* e não o componente
 import { ferramentaService } from "@/services/ferramentaService";
+
+// --- MUDANÇA 1: Importar o carrinhoService ---
+import { carrinhoService } from "@/services/carrinhoService"; 
 
 export default {
   name: "DetalheFerramenta",
@@ -70,35 +76,59 @@ export default {
 
   data() {
     return {
-      ferramenta: null, // Aqui vai o objeto da ferramenta (o FerramentaSchema)
+      ferramenta: null, 
       isLoading: true,
       erro: null,
+      
+      // --- MUDANÇA 2: Adicionar estado para o botão ---
+      adicionandoAoCarrinho: false,
+      textoBotao: "Adicionar ao Carrinho"
     };
   },
 
   methods: {
-    // Método que busca o ID da URL e chama a API
+    // --- MUDANÇA 3: Adicionar o método para o botão ---
+    async adicionarItem() {
+      // 1. Desabilita o botão e mostra feedback
+      this.adicionandoAoCarrinho = true;
+      this.textoBotao = "Adicionando...";
+
+      try {
+        // 2. Pega o ID da ferramenta que já carregamos
+        const idDaFerramenta = this.ferramenta.id;
+
+        // 3. Chama o serviço
+        await carrinhoService.adicionarAoCarrinho(idDaFerramenta);
+
+        // 4. Sucesso!
+        this.textoBotao = "Adicionado!";
+
+
+      } catch (err) {
+        // 6. Em caso de erro
+        console.error("Erro ao adicionar item:", err);
+        alert("Não foi possível adicionar o item ao carrinho. Tente novamente.");
+        
+        // 7. Reabilita o botão
+        this.adicionandoAoCarrinho = false;
+        this.textoBotao = "Adicionar ao Carrinho";
+      }
+    },
+
+    // --- (Método existente) ---
     async carregarDetalhes() {
       this.isLoading = true;
       this.erro = null;
-
       try {
-        // 1. Pega o ID da URL (ex: /ferramenta/123)
         const idDaRota = this.$route.params.id;
-
-        // 2. Chama o novo método do serviço
         const response = await ferramentaService.getFerramentaById(idDaRota);
-        
-        // 3. Salva o objeto retornado no 'data'
         this.ferramenta = response.data;
-
       } catch (err) {
         console.error("Erro ao carregar detalhes da ferramenta:", err);
         if (err.response && err.response.status === 404) {
           this.erro = "Ferramenta não encontrada.";
         } else if (err.response && (err.response.status === 401 || err.response.status === 403)) {
           this.erro = "Sua sessão expirou. Faça login para ver os detalhes.";
-          // this.$router.push('/login');
         } else {
           this.erro = "Falha ao buscar dados da ferramenta.";
         }
@@ -107,7 +137,7 @@ export default {
       }
     },
 
-    // Copiamos os mesmos métodos de ajuda da tela anterior
+    // --- (Métodos de formatação existentes) ---
     formatarPreco(valor) {
       const numero = parseFloat(valor);
       if (isNaN(numero)) return "R$ 0,00";
@@ -123,7 +153,6 @@ export default {
     }
   },
 
-  // Gatilho: roda o método assim que o componente é criado
   created() {
     this.carregarDetalhes();
   }

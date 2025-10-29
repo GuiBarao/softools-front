@@ -1,10 +1,10 @@
 <template>
-    <header>
+  <header>
     <div class="conteudo-cabecalho">
       <div class="logo">
-          <router-link to="/">
-            <img src="../../../public/img/logo.png" alt="Logo" />
-          </router-link>
+        <router-link to="/">
+          <img src="../../../public/img/logo.png" alt="Logo" />
+        </router-link>
       </div>
 
       <div class="pesquisa">
@@ -14,15 +14,15 @@
 
       <nav class="menu-lateral">
         <ul>
-            <li>
-                <img src="../../../public/img/carrinho.png" alt="">
-                <a href="#">Carrinho</a>
-            </li>
-            <li id="perfil" >
-                <img src="../../../public/img/perfil-laranja.png" alt="">
-                <router-link to="/meuperfil">Perfil</router-link>
-            </li>
-            <li><img src="../../../public/img/sair.png" alt="Sair" /></li>
+          <li>
+            <img src="../../../public/img/carrinho.png" alt="">
+            <router-link to="/carrinho">Carrinho</router-link>
+          </li>
+          <li id="perfil" >
+            <img src="../../../public/img/perfil-laranja.png" alt="">
+            <router-link to="/meuperfil">Perfil</router-link>
+          </li>
+          <li><img src="../../../public/img/sair.png" alt="Sair" /></li>
         </ul>
       </nav>
     </div>
