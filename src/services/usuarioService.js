@@ -29,5 +29,15 @@ export const usuarioService = {
     return apiClient.delete('/users', {
       params: { idUsuario: id }
     });
+  },
+
+  /**
+   * Cadastra um novo usuário (Rota pública).
+   * ROTA: POST /users
+   */
+  cadastrarUsuario(dadosCadastro) {
+    // 'apiClient' é seguro. Se o usuário não está logado,
+    // o interceptor que fizemos não anexa um token.
+    return apiClient.post('/users', dadosCadastro);
   }
 };

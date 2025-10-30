@@ -15,11 +15,17 @@
       <nav class="menu-lateral">
         <ul>
           <li>
-            <img src="../../../public/img/carrinho.png" alt="">
+            <img src="../../../public/img/carrinho.png" alt="Carrinho">
             <router-link to="/carrinho">Carrinho</router-link>
           </li>
+
+          <li>
+            <img src="../../../public/img/adicionar.svg" alt="Cadastrar Ferramenta">
+            <router-link to="/cadastrar-ferramenta">Nova Ferramenta</router-link>
+          </li>
+          
           <li id="perfil" >
-            <img src="../../../public/img/perfil-laranja.png" alt="">
+            <img src="../../../public/img/perfil-laranja.png" alt="Perfil">
             <router-link to="/meuperfil">Perfil</router-link>
           </li>
           <li><img src="../../../public/img/sair.png" alt="Sair" /></li>
