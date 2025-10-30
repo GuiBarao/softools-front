@@ -8,12 +8,11 @@ import EsqueceuSenha from '../components/login/EsqueceuSenha.vue'
 import TelaFerramentas from '../components/ferramentas/TelaFerramentas.vue'
 
 
-import MeuPerfil from '../components/perfil_usuario/MeuPerfil.vue'
-
-
 import DetalheFerramenta from '../components/ferramentas/DetalheFerramenta.vue'
 
 import MeuCarrinho from '@/components/ferramentas/MeuCarrinho.vue'
+
+import MeuPerfil from '@/components/perfil/MeuPerfil.vue'
 
 
 const routes = [
@@ -37,10 +36,7 @@ const routes = [
     name: 'TelaFerramentas', 
     component: TelaFerramentas 
   },
-  { path: '/meuperfil', 
-    name: 'MeuPerfil', 
-    component: MeuPerfil 
-  },
+
   { 
     path: '/ferramenta/:id', 
     name: 'DetalheFerramenta',
@@ -51,6 +47,11 @@ const routes = [
     name: 'MeuCarrinho',
     component: MeuCarrinho
   },
+  { 
+    path: '/meuperfil', 
+    name: 'MeuPerfil', 
+    component: MeuPerfil 
+  }
 ]
 
 const router = createRouter({
