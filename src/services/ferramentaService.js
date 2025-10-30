@@ -19,6 +19,16 @@ export const ferramentaService = {
   getFerramentaById(id) {
     // O apiClient já tem a baseURL e o token (via interceptor)
     return apiClient.get(`/ferramentas/${id}`);
+  },
+
+  /**
+   * Cadastra uma nova ferramenta.
+   * ROTA: POST /ferramentas
+   * @param {FormData} formData - O objeto FormData contendo os dados e as fotos.
+   */
+  cadastrarFerramenta(formData) {
+    // SEM headers manuais. Apenas o apiClient e o formData.
+    return apiClient.post('/ferramentas', formData);
   }
  
 };

@@ -14,6 +14,8 @@ import MeuCarrinho from '@/components/ferramentas/MeuCarrinho.vue'
 
 import MeuPerfil from '@/components/perfil/MeuPerfil.vue'
 
+import CadastrarFerramenta from '@/components/ferramentas/CadastrarFerramenta.vue'
+
 
 const routes = [
   { path: '/', 
@@ -51,6 +53,11 @@ const routes = [
     path: '/meuperfil', 
     name: 'MeuPerfil', 
     component: MeuPerfil 
+  },
+  {
+    path: '/cadastrar-ferramenta',
+    name: 'CadastrarFerramenta',
+    component: CadastrarFerramenta
   }
 ]
 
