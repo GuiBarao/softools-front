@@ -29,7 +29,11 @@
             v-for="(item, index) in historico" 
             :key="index"
           >
-            <img src="../../../public/img/ferramenta1.png" :alt="item.produto.nome" class="item-imagem">
+            <img 
+              :src="item.produto.urlFoto || '../../../public/img/ferramenta1.png'" 
+              :alt="item.produto.nome" 
+              class="item-imagem"
+            >
             
             <div class="item-detalhes">
               <h3 class="item-nome">{{ item.produto.nome }}</h3>
@@ -57,7 +61,10 @@
 
 <script>
 import CabecalhoInterno from "../cabecalho/CabecalhoInterno";
-import { historicoService } from "@/services/historicoService";
+// Corrigindo o caminho para ../../ (baseado no seu 'CabecalhoInterno')
+import { historicoService } from "../../services/historicoService";
+// === IMPORTAR O ferramentaService ===
+import { ferramentaService } from "../../services/ferramentaService";
 
 export default {
   name: "HistoricoAlugueis",
@@ -79,15 +86,49 @@ export default {
       this.isLoading = true;
       this.erro = null;
       try {
-        // Chama o método que usa a rota GET /historico/
         const response = await historicoService.getHistorico();
-        this.historico = response.data; // A lista de ItemHistoricoSchema
+        
+        // === MUDANÇA AQUI ===
+        // 1. Adiciona o campo 'urlFoto: null' em cada produto
+        response.data.forEach(item => {
+          if (item.produto) {
+            item.produto.urlFoto = null;
+          }
+        });
+
+        this.historico = response.data;
+        
+        // 2. Chama a busca de fotos (sem await, para não bloquear)
+        this.buscarFotosDoHistorico();
+
       } catch (err) {
         console.error("Erro ao carregar histórico:", err);
         this.erro = "Não foi possível carregar seu histórico. Tente novamente.";
       } finally {
         this.isLoading = false;
       }
+    },
+
+    /**
+     * === NOVO MÉTODO ===
+     * Itera sobre o histórico e busca a foto de cada produto.
+     */
+    buscarFotosDoHistorico() {
+      this.historico.forEach(async (item) => {
+        const produto = item.produto;
+
+        // Verifica se o produto existe e tem a lista de fotos
+        // (Ajustado para 'ids_foto' como no seu schema)
+        if (produto && produto.ids_foto && produto.ids_foto.length > 0) {
+          const idFoto = produto.ids_foto[0]; // Pega o primeiro ID
+          try {
+            const response = await ferramentaService.getFotoFerramenta(idFoto);
+            produto.urlFoto = URL.createObjectURL(response.data);
+          } catch (err) {
+            console.error(`Falha ao carregar foto ${idFoto} para ${produto.nome}`, err);
+          }
+        }
+      });
     },
 
     /**

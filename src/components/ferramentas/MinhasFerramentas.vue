@@ -28,13 +28,15 @@
             v-for="ferramenta in ferramentas" 
             :key="ferramenta.id"
           >
-            <img src="../../../public/img/ferramenta1.png" :alt="ferramenta.nome" class="item-imagem">
+            <img 
+              :src="ferramenta.urlFoto || '../../../public/img/ferramenta1.png'" 
+              :alt="ferramenta.nome" 
+              class="item-imagem"
+            >
             
             <div class="item-detalhes">
               <h3 class="item-nome">{{ ferramenta.nome }}</h3>
-              <div class="item-status" :class="ferramenta.status === 'DISPONIVEL' ? 'status-disponivel' : 'status-indisponivel'">
-                {{ ferramenta.status }}
-              </div>
+              
               <span class="item-categoria">{{ ferramenta.categoria }}</span>
               <div class="item-preco">{{ formatarPreco(ferramenta.diaria) }} / dia</div>
             </div>
@@ -60,9 +62,20 @@
 
     <div class="modal-overlay" v-if="showModal" @click.self="fecharModal">
       
-      <div class="modal-content" v-if="ferramentaParaEditar">
+      <div class="modal-content">
         
-        <form @submit.prevent="handleUpdate">
+        <div v-if="isModalLoading" class="aviso-carregando modal-aviso">
+          Carregando dados da ferramenta...
+        </div>
+        
+        <div v-if="!isModalLoading && modalErro" class="aviso-erro modal-aviso">
+          {{ modalErro }}
+          <button @click="fecharModal" type="button" class="btn-cancelar" style="margin-top: 15px;">
+            Fechar
+          </button>
+        </div>
+
+        <form @submit.prevent="handleUpdate" v-if="!isModalLoading && ferramentaParaEditar">
           
           <div class="modal-header">
             <h2>Editar Ferramenta</h2>
@@ -71,8 +84,6 @@
           
           <div class="modal-body">
             
-            <div v-if="modalErro" class="aviso-erro modal-aviso">{{ modalErro }}</div>
-
             <div class="form-group">
               <h3>Nome da Ferramenta</h3>
               <input type="text" v-model="ferramentaParaEditar.nome" required />
@@ -137,8 +148,8 @@
 
 <script>
 import CabecalhoInterno from "../cabecalho/CabecalhoInterno";
-// O serviço já deve conter o método 'atualizarFerramenta'
-import { ferramentaService } from "@/services/ferramentaService";
+// Corrigindo o caminho para ../../ (baseado no seu 'CabecalhoInterno')
+import { ferramentaService } from "../../services/ferramentaService";
 
 export default {
   name: "MinhasFerramentas",
@@ -148,34 +159,60 @@ export default {
   data() {
     return {
       // --- Estados da Página ---
-      ferramentas: [], 
+      ferramentas: [], // Lista de FerramentaPreviewSchema
       isLoading: true,
       erro: null,
       deletandoId: null,
       
-      // --- === Estados do Modal (NOVOS) === ---
+      // --- Estados do Modal ---
       showModal: false,
-      ferramentaParaEditar: null, // Guarda o objeto da ferramenta clicada
-      isUpdating: false,          // Feedback do botão "Salvar"
-      modalErro: null,            // Erro específico do modal
+      ferramentaParaEditar: null, // Guarda o FerramentaSchema COMPLETO
+      isUpdating: false,          
+      isModalLoading: false,      // NOVO: Loading para o modal
+      modalErro: null,
     };
   },
   methods: {
     /**
-     * Busca os dados das ferramentas do usuário na API.
+     * Busca os dados das ferramentas (do histórico de registro) E AS FOTOS.
      */
     async carregarMinhasFerramentas() {
       this.isLoading = true;
       this.erro = null;
       try {
-        const response = await ferramentaService.getMinhasFerramentas();
-        this.ferramentas = response.data;
+        const response = await ferramentaService.getMinhasFerramentas(); // GET /historico_registro/
+
+        const ferramentasComUrl = response.data.map(tool => ({
+          ...tool,
+          urlFoto: null 
+        }));
+        
+        this.ferramentas = ferramentasComUrl;
+        this.buscarFotosParaFerramentas();
+
       } catch (err) {
         console.error("Erro ao carregar ferramentas:", err);
         this.erro = "Não foi possível carregar suas ferramentas. Tente novamente.";
       } finally {
         this.isLoading = false;
       }
+    },
+
+    /**
+     * Itera sobre as ferramentas e busca a primeira foto de cada uma.
+     */
+    buscarFotosParaFerramentas() {
+      this.ferramentas.forEach(async (ferramenta) => {
+        if (ferramenta && ferramenta.ids_foto && ferramenta.ids_foto.length > 0) {
+          const idFoto = ferramenta.ids_foto[0];
+          try {
+            const response = await ferramentaService.getFotoFerramenta(idFoto);
+            ferramenta.urlFoto = URL.createObjectURL(response.data);
+          } catch (err) {
+            console.error(`Falha ao carregar foto ${idFoto} para ${ferramenta.nome}`, err);
+          }
+        }
+      });
     },
 
     /**
@@ -209,19 +246,30 @@ export default {
       });
     },
 
-    // --- === MÉTODOS NOVOS DO MODAL === ---
-
     /**
-     * Abre o modal e preenche com os dados da ferramenta selecionada.
+     * === MÉTODO ATUALIZADO DO MODAL ===
+     * Abre o modal e BUSCA os dados completos da ferramenta na API.
      */
-    abrirModal(ferramenta) {
-      // Cria uma CÓPIA PROFUNDA do objeto.
-      // Isso é crucial para que as edições no modal não afetem
-      // a lista principal antes de salvar.
-      this.ferramentaParaEditar = JSON.parse(JSON.stringify(ferramenta));
-      
+    async abrirModal(ferramentaPreview) {
       this.showModal = true;
+      this.isModalLoading = true; // Ativa o loading do modal
       this.modalErro = null;
+      this.ferramentaParaEditar = null; // Limpa dados antigos
+
+      try {
+        // 1. Busca os dados COMPLETOS da ferramenta usando o ID do preview
+        // (Isso chama GET /ferramentas/{id})
+        const response = await ferramentaService.getFerramentaById(ferramentaPreview.id);
+        
+        // 2. Preenche o 'ferramentaParaEditar' com os dados completos
+        this.ferramentaParaEditar = response.data; // Este é o FerramentaSchema completo
+
+      } catch (err) {
+        console.error("Erro ao buscar dados completos da ferramenta:", err);
+        this.modalErro = "Não foi possível carregar os dados para edição.";
+      } finally {
+        this.isModalLoading = false; // Desativa o loading do modal
+      }
     },
 
     /**
@@ -242,9 +290,6 @@ export default {
       this.isUpdating = true;
       this.modalErro = null;
 
-      // 1. Montar o payload (FerramentaAtualizacaoSchema)
-      // Seu schema de atualização espera 'id_ferramenta',
-      // mas o nosso objeto de edição tem 'id'. Vamos mapear.
       const payload = {
         id_ferramenta: this.ferramentaParaEditar.id,
         nome: this.ferramentaParaEditar.nome,
@@ -257,20 +302,28 @@ export default {
       };
 
       try {
-        // 2. Chamar o serviço
+        // Chama PATCH /ferramentas
         const response = await ferramentaService.atualizarFerramenta(payload);
         
-        // 3. Sucesso! A API retorna a ferramenta atualizada (FerramentaSchema)
+        // A API retorna o FerramentaSchema completo
         const ferramentaAtualizada = response.data;
         
-        // 4. Atualizar a lista principal 'ferramentas' na tela
+        // Encontra o item na lista principal
         const index = this.ferramentas.findIndex(f => f.id === ferramentaAtualizada.id);
         if (index !== -1) {
-          // Atualiza o item no array reativamente
-          this.ferramentas.splice(index, 1, ferramentaAtualizada);
+          // Pega a URL da foto antiga (que já buscamos)
+          const urlFotoAntiga = this.ferramentas[index].urlFoto;
+          
+          // Precisamos mesclar os dados, pois a lista é de PREVIEW
+          const itemAtualizadoNaLista = {
+            ...this.ferramentas[index], // Pega o preview antigo
+            ...ferramentaAtualizada,    // Sobrescreve com os dados novos
+            urlFoto: urlFotoAntiga     // Garante que a foto não se perca
+          };
+          
+          this.ferramentas.splice(index, 1, itemAtualizadoNaLista);
         }
         
-        // 5. Fechar o modal
         this.fecharModal();
 
       } catch (err) {
@@ -286,7 +339,6 @@ export default {
     }
   },
   created() {
-    // Carrega as ferramentas assim que a página é criada
     this.carregarMinhasFerramentas();
   }
 };
@@ -354,23 +406,8 @@ export default {
   margin: 0 0 5px 0;
 }
 
-.item-status {
-  font-size: 0.8rem;
-  font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 5px;
-  display: inline-block;
-  margin-bottom: 5px;
-  text-transform: capitalize;
-}
-.status-disponivel {
-  background-color: #e8f5e9; 
-  color: #2e7d32;
-}
-.status-indisponivel {
-  background-color: #ffebee; 
-  color: #c62828;
-}
+/* === ESTILO REMOVIDO === */
+/* O .item-status foi removido do template */
 
 .item-categoria {
   background-color: #f7f9fc;
@@ -380,7 +417,6 @@ export default {
   border-radius: 5px;
   font-size: 0.8rem;
   text-transform: capitalize;
-  margin-left: 5px;
 }
 
 .item-preco {
@@ -474,11 +510,11 @@ export default {
 
 
 /* ============================================= */
-/* === ESTILOS NOVOS PARA O MODAL === */
+/* === ESTILOS DO MODAL === */
 /* ============================================= */
 
 .modal-overlay {
-  position: fixed; /* Cobre a tela inteira */
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
@@ -494,11 +530,10 @@ export default {
   background: #ffffff;
   border-radius: 10px;
   width: 90%;
-  max-width: 700px; /* Largura do modal */
-  max-height: 90vh; /* Altura máxima */
+  max-width: 700px;
+  max-height: 90vh;
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* Para o header e footer ficarem fixos */
   box-shadow: 0 5px 15px rgba(0,0,0,0.3);
 }
 
@@ -508,6 +543,7 @@ export default {
   align-items: center;
   padding: 15px 25px;
   border-bottom: 1px solid #eee;
+  flex-shrink: 0;
 }
 .modal-header h2 {
   font-size: 1.5rem;
@@ -528,11 +564,11 @@ export default {
 
 .modal-body {
   padding: 25px;
-  overflow-y: auto; 
-  max-height: calc(90vh - 120px);
+  flex: 1;
+  overflow-y: auto;
 }
 
-/* Reutilizando estilos do form de cadastro */
+/* Estilos do formulário dentro do modal */
 .form-group {
   margin-bottom: 20px;
 }
@@ -571,11 +607,12 @@ export default {
 
 .modal-footer {
   display: flex;
-  justify-content: flex-end; /* Alinha botões à direita */
+  justify-content: flex-end;
   gap: 15px;
   padding: 15px 25px;
   border-top: 1px solid #eee;
   background-color: #f7f9fc;
+  flex-shrink: 0;
 }
 
 /* Botões do Modal */
@@ -609,7 +646,7 @@ export default {
   cursor: not-allowed;
 }
 
-/* Aviso de erro para o modal */
+/* Aviso de erro/loading para o modal */
 .modal-aviso {
   margin-top: 0;
   margin-bottom: 20px;
