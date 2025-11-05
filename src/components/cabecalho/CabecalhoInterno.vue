@@ -2,7 +2,7 @@
   <header>
     <div class="conteudo-cabecalho">
       <div class="logo">
-        <router-link to="/ferramentas">
+                <router-link to="/ferramentas">
           <img src="../../../public/img/logo.png" alt="Logo" />
         </router-link>
       </div>
@@ -20,8 +20,13 @@
           </li>
 
           <li>
+            <img src="../../../public/img/historico.svg" alt="Minhas ferramentas">
+            <router-link to="/minhas-ferramentas">Minhas Ferramentas</router-link>
+          </li>
+
+          <li>
             <img src="../../../public/img/carrinho.png" alt="Carrinho">
-            <router-link to="/carrinho">Carrinho</router-link>
+                        <router-link to="/meu-carrinho">Carrinho</router-link>
           </li>
 
           <li>
@@ -33,7 +38,11 @@
             <img src="../../../public/img/perfil-laranja.png" alt="Perfil">
             <router-link to="/meuperfil">Perfil</router-link>
           </li>
-          <li><img src="../../../public/img/sair.png" alt="Sair" /></li>
+          
+                    <li @click="handleLogout" style="cursor: pointer;">
+            <img src="../../../public/img/sair.png" alt="Sair" />
+            <a href="#">Sair</a>
+          </li>
         </ul>
       </nav>
     </div>
@@ -42,7 +51,22 @@
 
 <script>
     export default {
-        name: 'CabecalhoInterno'//nome do componente exportado
+        name: 'CabecalhoInterno',//nome do componente exportado
+
+        // Adicionada a seção 'methods'
+        methods: {
+          handleLogout() {
+            // 1. Pergunta ao usuário se ele tem certeza
+            if (confirm("Tem certeza que deseja sair?")) {
+              
+              // 2. Limpa todos os dados salvos (token, dados do usuário, etc.)
+              localStorage.clear();
+
+              // 3. Redireciona o usuário para a página inicial (rota "/")
+              this.$router.push('/');
+            }
+          }
+        }
     }
 </script>
 
