@@ -108,8 +108,9 @@
               :key="ferramenta.id"
             >
               <img
-                src="../../../public/img/ferramenta1.png"
-                :alt="ferramenta.nome" />
+                :src="ferramenta.urlFoto ? ferramenta.urlFoto : '../../../public/img/ferramenta1.png'"
+                :alt="ferramenta.nome" 
+              />
               <div class="conteudo-card">
                 <h3>{{ ferramenta.nome }}</h3>
                 <div class="estrela">
@@ -144,17 +145,9 @@ export default {
       ferramentas: [], // A "Master List" vinda da API
       isLoading: true,
       erro: null,
-      
-      // Filtro de Categoria (Client-side)
       filtroCategoriaAtivo: 'TODAS', 
-      
-      // Filtro de UF (Server-side)
-      filtroUfAtivo: 'TODAS', // 'TODAS' significa "sem filtro"
-
-      // --- PASSO 2: Adicionar o novo estado de filtro ---
-      filtroStatusAtivo: 'TODOS', // 'TODOS' significa "sem filtro"
-      
-      // Lista de UFs para o v-for
+      filtroUfAtivo: 'TODAS',
+      filtroStatusAtivo: 'TODOS',
       ufs: [
         'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 
         'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 
@@ -164,7 +157,6 @@ export default {
   },
   
   computed: {
-    // Filtro CLIENT-SIDE (roda depois que a API retorna)
     ferramentasFiltradas() {
       if (this.filtroCategoriaAtivo === 'TODAS') {
         return this.ferramentas;
@@ -176,59 +168,50 @@ export default {
   },
 
   methods: {
-    // --- PASSO 3: Criar o novo método de filtro de Status ---
-    /**
-     * Atualiza o filtro de Status e chama a API novamente.
-     */
     filtrarPorStatus(status) {
       this.filtroStatusAtivo = status;
-      // Chama a API para recarregar as ferramentas com o novo filtro
       this.carregarFerramentas();
     },
 
-    /**
-     * Atualiza o filtro de UF e chama a API novamente.
-     */
     filtrarPorUf(uf) {
       this.filtroUfAtivo = uf;
       this.carregarFerramentas(); 
     },
     
-    /**
-     * Atualiza o filtro de categoria (CLIENT-SIDE).
-     * Não chama a API.
-     */
     filtrarPorCategoria(categoria) {
       this.filtroCategoriaAtivo = categoria;
+      // Não precisa recarregar da API, pois é filtro client-side
     },
   
-    // --- PASSO 4: Modificar o carregarFerramentas ---
     /**
-     * Método que chama a API.
-     * Agora ele verifica AMBOS os filtros server-side.
+     * Método que chama a API para buscar as ferramentas.
      */
     async carregarFerramentas() {
       this.isLoading = true;
       this.erro = null;
       
-      // 1. Monta o objeto de filtros para a API
       const filtrosApi = {};
-      
-      // 2. Adiciona o filtro de UF se não for 'TODAS'
       if (this.filtroUfAtivo !== 'TODAS') {
         filtrosApi.uf = this.filtroUfAtivo;
       }
-      
-      // 3. Adiciona o filtro de Status se não for 'TODOS'
       if (this.filtroStatusAtivo !== 'TODOS') {
         filtrosApi.status = this.filtroStatusAtivo;
       }
 
       try {
-        // 4. Passa o objeto de filtros (com uf, status, ou ambos) para o serviço
         const response = await ferramentaService.getFerramentas(filtrosApi);
         
-        this.ferramentas = response.data; 
+        // === MUDANÇA AQUI ===
+        // 1. "Enriquece" os dados da ferramenta com um campo 'urlFoto'
+        const ferramentasComUrl = response.data.map(tool => ({
+          ...tool,
+          urlFoto: null // Começa como nulo
+        }));
+        
+        this.ferramentas = ferramentasComUrl; 
+        
+        // 2. Dispara a busca das fotos em segundo plano
+        this.buscarFotosParaFerramentas();
 
       } catch (err) {
         console.error("Erro ao carregar ferramentas:", err);
@@ -240,6 +223,34 @@ export default {
       } finally {
         this.isLoading = false;
       }
+    },
+    
+    // --- === NOVO MÉTODO PARA BUSCAR FOTOS === ---
+    /**
+     * Itera sobre as ferramentas carregadas e busca a primeira foto de cada uma.
+     */
+    buscarFotosParaFerramentas() {
+      // Itera sobre a lista de ferramentas que está no 'data'
+      this.ferramentas.forEach(async (ferramenta) => {
+        // Verifica se a ferramenta tem a lista 'ids_fotos' e se ela não está vazia
+        if (ferramenta.ids_fotos && ferramenta.ids_fotos.length > 0) {
+          
+          const idFoto = ferramenta.ids_fotos[0]; // Pega o primeiro ID
+          
+          try {
+            // 1. Chama o serviço para buscar o arquivo (Blob)
+            const response = await ferramentaService.getFotoFerramenta(idFoto);
+            
+            // 2. 'response.data' é o Blob da imagem
+            // 3. Cria uma URL temporária local para o arquivo
+            ferramenta.urlFoto = URL.createObjectURL(response.data);
+
+          } catch (err) {
+            console.error(`Falha ao carregar foto ${idFoto} para ${ferramenta.nome}`, err);
+            ferramenta.urlFoto = null; // Se falhar, usa o placeholder
+          }
+        }
+      });
     },
 
     // Métodos de formatação (sem alterações)

@@ -29,7 +29,11 @@
               v-for="item in carrinho.ferramentas" 
               :key="item.ferramenta.id"
             >
-              <img src="../../../public/img/ferramenta1.png" :alt="item.ferramenta.nome" class="item-imagem">
+              <img 
+                :src="item.ferramenta.urlFoto || '../../../public/img/ferramenta1.png'" 
+                :alt="item.ferramenta.nome" 
+                class="item-imagem"
+              >
               <div class="item-detalhes">
                 <h3 class="item-nome">{{ item.ferramenta.nome }}</h3>
                 <span class="item-categoria">{{ item.ferramenta.categoria }}</span>
@@ -106,8 +110,10 @@
 
 <script>
 import CabecalhoInterno from "../cabecalho/CabecalhoInterno";
-import { carrinhoService } from "@/services/carrinhoService";
-import { pedidosService } from "@/services/pedidosService"; // Importar serviço de pedidos
+// Corrigindo os caminhos de importação para ../../ (baseado no seu 'CabecalhoInterno')
+import { carrinhoService } from "../../services/carrinhoService"; 
+import { pedidosService } from "../../services/pedidosService";
+import { ferramentaService } from "../../services/ferramentaService";
 
 export default {
   name: "MeuCarrinho",
@@ -120,97 +126,81 @@ export default {
       isLoading: true,
       erro: null,
       isCheckingOut: false,
-      
-      // Objeto para mapear: { id_ferramenta: quantidade }
       quantidades: {}, 
-      
-      // Inputs de data
       dataInicio: '',
       dataDevolucao: '',
-      
-      // Validação de data
       erroDatas: null
     };
   },
   computed: {
-    /**
-     * Retorna a data de hoje no formato YYYY-MM-DD para o input 'min'.
-     */
     hoje() {
       return new Date().toISOString().split('T')[0];
     },
 
-    /**
-     * Calcula o número de dias do aluguel (início e fim são inclusos).
-     */
     quantidadeDias() {
       if (!this.dataInicio || !this.dataDevolucao) {
-        return 0; // Se datas não estão preenchidas
+        return 0;
       }
       try {
-        // Adiciona T00:00:00 para evitar problemas de fuso horário
         const inicio = new Date(this.dataInicio + 'T00:00:00');
         const fim = new Date(this.dataDevolucao + 'T00:00:00');
 
         if (fim < inicio) {
-          return 0; // Data final antes da inicial
+          return 0;
         }
         
         const diffTime = fim.getTime() - inicio.getTime();
         const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
         
-        return diffDays + 1; // +1 para incluir o dia de início
+        return diffDays + 1;
       } catch (e) {
         return 0;
       }
     },
 
-    /**
-     * Validador simples para habilitar o botão de checkout.
-     */
     datasSaoValidas() {
       return this.quantidadeDias > 0;
     },
 
-    /**
-     * Calcula o subtotal *por dia* (soma de diárias * quantidades).
-     */
     subtotalDiario() {
       if (!this.carrinho || !this.carrinho.ferramentas) return 0;
 
       return this.carrinho.ferramentas.reduce((total, item) => {
         const diaria = parseFloat(item.ferramenta.diaria);
-        // Pega a quantidade do nosso map, ou usa 1 como padrão
         const qntd = this.quantidades[item.ferramenta.id] || 1;
         return total + (diaria * qntd);
       }, 0);
     },
 
-    /**
-     * Calcula o valor total final (Subtotal Diário * Quantidade de Dias).
-     */
     valorTotal() {
       return this.subtotalDiario * this.quantidadeDias;
     }
   },
   methods: {
-    /**
-     * Busca os dados do carrinho e INICIALIZA as quantidades.
-     */
     async carregarCarrinho() {
       this.isLoading = true;
       this.erro = null;
       try {
         const response = await carrinhoService.getMeuCarrinho();
+
+        // 1. Adiciona o campo 'urlFoto: null' em cada item
+        response.data.ferramentas.forEach(item => {
+          if (item.ferramenta) {
+            item.ferramenta.urlFoto = null;
+          }
+        });
+        
         this.carrinho = response.data;
 
-        // INICIALIZA O MAPA DE QUANTIDADES
+        // 2. INICIALIZA O MAPA DE QUANTIDADES
         const novasQuantidades = {};
         for (const item of this.carrinho.ferramentas) {
-          // Mantém a quantidade antiga se ela existir, senão, 1
           novasQuantidades[item.ferramenta.id] = this.quantidades[item.ferramenta.id] || 1;
         }
         this.quantidades = novasQuantidades;
+
+        // 3. CHAMA A BUSCA DE FOTOS (sem await, para não bloquear)
+        this.buscarFotosDoCarrinho();
 
       } catch (err) {
         console.error("Erro ao carregar carrinho:", err);
@@ -221,13 +211,30 @@ export default {
     },
 
     /**
-     * Remove um item do carrinho e recarrega a lista.
+     * Itera sobre os itens do carrinho e busca a primeira foto de cada um.
      */
+    buscarFotosDoCarrinho() {
+      this.carrinho.ferramentas.forEach(async (item) => {
+        const ferramenta = item.ferramenta;
+        
+        // Verifica se o item existe e tem a lista de fotos
+        // (Isso agora vai funcionar, pois o backend envia 'ids_foto')
+        // *** ATENÇÃO: Seu schema está 'ids_foto', o código está 'ids_fotos'. Ajustei para 'ids_foto' ***
+        if (ferramenta && ferramenta.ids_foto && ferramenta.ids_foto.length > 0) {
+          const idFoto = ferramenta.ids_foto[0]; // Pega o primeiro ID
+          try {
+            const response = await ferramentaService.getFotoFerramenta(idFoto);
+            ferramenta.urlFoto = URL.createObjectURL(response.data);
+          } catch (err) {
+            console.error(`Falha ao carregar foto ${idFoto} para ${ferramenta.nome}`, err);
+          }
+        }
+      });
+    },
+
     async removerItem(id) {
       try {
         await carrinhoService.removerDoCarrinho(id);
-        // Recarrega o carrinho para refletir a mudança
-        // O carregarCarrinho vai preservar as quantidades dos itens restantes
         await this.carregarCarrinho();
       } catch (err) {
         console.error("Erro ao remover item:", err);
@@ -235,28 +242,21 @@ export default {
       }
     },
 
-    /**
-     * Esvazia o carrinho e limpa o mapa de quantidades.
-     */
     async esvaziarCarrinho() {
-      // Adicionar um confirm() é uma boa prática
       if (!confirm("Tem certeza que deseja esvaziar seu carrinho?")) {
-        return; // Para se o usuário clicar "Cancelar"
+        return;
       }
 
       try {
         await carrinhoService.limparCarrinho();
-        this.quantidades = {}; // Limpa o mapa
-        await this.carregarCarrinho(); // Recarrega (carrinho virá vazio)
+        this.quantidades = {};
+        await this.carregarCarrinho();
       } catch (err) {
         console.error("Erro ao limpar carrinho:", err);
         alert("Não foi possível limpar o carrinho.");
       }
     },
 
-    /**
-     * Formata um valor numérico para R$ (reais).
-     */
     formatarPreco(valor) {
       const numero = parseFloat(valor);
       if (isNaN(numero)) return "R$ 0,00";
@@ -266,14 +266,10 @@ export default {
       });
     },
 
-    /**
-     * Finaliza o aluguel com os dados do formulário.
-     */
     async handleCheckout() {
       this.erro = null;
       this.erroDatas = null;
 
-      // 1. Validação
       if (!this.datasSaoValidas) {
         this.erroDatas = "Por favor, selecione uma data de início e devolução válidas.";
         return;
@@ -282,13 +278,11 @@ export default {
       this.isCheckingOut = true;
 
       try {
-        // 2. Montar a lista de ferramentas com as quantidades
         const ferramentasPayload = this.carrinho.ferramentas.map(item => ({
           id_ferramenta: item.ferramenta.id,
           quantidade: this.quantidades[item.ferramenta.id] || 1
         }));
 
-        // 3. Montar o payload final (agora com dados reais)
         const payload = {
           ferramentas: ferramentasPayload,
           quantidade_dias: this.quantidadeDias,
@@ -297,15 +291,12 @@ export default {
           alugada: false 
         };
 
-        // 4. Chamar a API de Pedidos
         const response = await pedidosService.registrarPedido(payload);
         const { chave_pix } = response.data;
-        const valorFinal = this.valorTotal; // Pega o valor total calculado
+        const valorFinal = this.valorTotal; 
 
-        // 5. Limpa o carrinho
         await carrinhoService.limparCarrinho();
 
-        // 6. Redireciona para a página de pagamento com os dados
         this.$router.push({ 
           name: 'PagamentoPix', 
           state: { 
@@ -323,7 +314,6 @@ export default {
     }
   },
   created() {
-    // Carrega o carrinho assim que a página é criada
     this.carregarCarrinho();
   }
 };

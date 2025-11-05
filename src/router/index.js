@@ -50,7 +50,7 @@ const routes = [
     component: DetalheFerramenta
   },
   { 
-    path: '/carrinho', 
+    path: '/meu-carrinho', 
     name: 'MeuCarrinho',
     component: MeuCarrinho
   },

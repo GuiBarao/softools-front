@@ -60,6 +60,13 @@ export const ferramentaService = {
   atualizarFerramenta(payload) {
     // O backend espera um JSON body com os dados
     return apiClient.patch('/ferramentas', payload);
+  },
+
+  getFotoFerramenta(id_foto) {
+    return apiClient.get(`/ferramentas/foto/${id_foto}`, {
+      // Isso é crucial para o axios entender que está vindo um arquivo
+      responseType: 'blob' 
+    });
   }
  
 };

@@ -16,7 +16,7 @@
         <template v-if="!isLoading && !erro && ferramenta">
           
           <div class="detalhe-imagem">
-            <img src="../../../public/img/ferramenta1.png" :alt="ferramenta.nome" />
+            <img :src="urlFoto || '../../../public/img/ferramenta1.png'" :alt="ferramenta.nome" />
           </div>
 
           <div class="detalhe-info">
@@ -64,8 +64,6 @@
 <script>
 import CabecalhoInterno from "../cabecalho/CabecalhoInterno";
 import { ferramentaService } from "@/services/ferramentaService";
-
-// --- MUDANÇA 1: Importar o carrinhoService ---
 import { carrinhoService } from "@/services/carrinhoService"; 
 
 export default {
@@ -79,43 +77,44 @@ export default {
       ferramenta: null, 
       isLoading: true,
       erro: null,
-      
-      // --- MUDANÇA 2: Adicionar estado para o botão ---
       adicionandoAoCarrinho: false,
-      textoBotao: "Adicionar ao Carrinho"
+      textoBotao: "Adicionar ao Carrinho",
+      
+      // --- === NOVO ESTADO PARA A FOTO === ---
+      urlFoto: null 
     };
   },
 
   methods: {
-    // --- MUDANÇA 3: Adicionar o método para o botão ---
+    /**
+     * Adiciona o item ao carrinho e redireciona.
+     */
     async adicionarItem() {
-      // 1. Desabilita o botão e mostra feedback
       this.adicionandoAoCarrinho = true;
       this.textoBotao = "Adicionando...";
 
       try {
-        // 2. Pega o ID da ferramenta que já carregamos
         const idDaFerramenta = this.ferramenta.id;
-
-        // 3. Chama o serviço
         await carrinhoService.adicionarAoCarrinho(idDaFerramenta);
-
-        // 4. Sucesso!
         this.textoBotao = "Adicionado!";
 
+        // Redireciona para o carrinho após 1 segundo
+        setTimeout(() => {
+          this.$router.push('/meu-carrinho');
+        }, 1000);
 
       } catch (err) {
-        // 6. Em caso de erro
         console.error("Erro ao adicionar item:", err);
         alert("Não foi possível adicionar o item ao carrinho. Tente novamente.");
         
-        // 7. Reabilita o botão
         this.adicionandoAoCarrinho = false;
         this.textoBotao = "Adicionar ao Carrinho";
       }
     },
 
-    // --- (Método existente) ---
+    /**
+     * Carrega os detalhes da ferramenta E sua foto.
+     */
     async carregarDetalhes() {
       this.isLoading = true;
       this.erro = null;
@@ -123,6 +122,11 @@ export default {
         const idDaRota = this.$route.params.id;
         const response = await ferramentaService.getFerramentaById(idDaRota);
         this.ferramenta = response.data;
+        
+        // --- === MUDANÇA: Chama o método para buscar a foto === ---
+        // (O 'await' garante que a foto seja buscada antes do loading sumir)
+        await this.buscarFotoDaFerramenta(); 
+
       } catch (err) {
         console.error("Erro ao carregar detalhes da ferramenta:", err);
         if (err.response && err.response.status === 404) {
@@ -137,13 +141,39 @@ export default {
       }
     },
 
-    // --- (Métodos de formatação existentes) ---
+    /**
+     * === NOVO MÉTODO ===
+     * Busca a primeira foto da ferramenta carregada.
+     */
+    async buscarFotoDaFerramenta() {
+      // Verifica se a ferramenta foi carregada e se tem 'ids_fotos'
+      // O 'this.ferramenta' já foi definido em 'carregarDetalhes'
+      if (this.ferramenta && this.ferramenta.ids_fotos && this.ferramenta.ids_fotos.length > 0) {
+        const idFoto = this.ferramenta.ids_fotos[0]; // Pega o primeiro ID
+        try {
+          // Lembre-se: getFotoFerramenta retorna um Blob (precisa estar no service)
+          const response = await ferramentaService.getFotoFerramenta(idFoto);
+          // Cria uma URL local para o Blob
+          this.urlFoto = URL.createObjectURL(response.data);
+        } catch (err) {
+          console.error(`Falha ao carregar foto ${idFoto}`, err);
+          this.urlFoto = null; // Usa o placeholder se falhar
+        }
+      }
+    },
+
+    /**
+     * Formata o preço para R$
+     */
     formatarPreco(valor) {
       const numero = parseFloat(valor);
       if (isNaN(numero)) return "R$ 0,00";
       return numero.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     },
 
+    /**
+     * Converte avaliação (número) em estrelas (string)
+     */
     gerarEstrelas(avaliacao) {
       const rating = Math.round(parseFloat(avaliacao));
       if (isNaN(rating) || rating <= 0) return '☆'.repeat(5);
@@ -278,15 +308,20 @@ export default {
   padding: 15px 25px; /* Um pouco maior */
   border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
   text-decoration: none;
   font-size: 1.1rem;
   width: 100%;
   max-width: 300px; /* Largura máxima */
   margin-top: 30px;
 }
-.botao-alugar-detalhe:hover {
+.botao-alugar-detalhe:hover:not(:disabled) {
   background-color: #d86400;
+}
+.botao-alugar-detalhe:disabled {
+  background-color: #f97316;
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 
