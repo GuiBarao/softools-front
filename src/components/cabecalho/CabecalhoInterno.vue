@@ -2,7 +2,7 @@
   <header>
     <div class="conteudo-cabecalho">
       <div class="logo">
-        <router-link to="/">
+        <router-link to="/ferramentas">
           <img src="../../../public/img/logo.png" alt="Logo" />
         </router-link>
       </div>
@@ -14,6 +14,11 @@
 
       <nav class="menu-lateral">
         <ul>
+          <li>
+            <img src="../../../public/img/historico.svg" alt="Histórico de pedidos">
+            <router-link to="/meu-historico">Histórico de pedidos</router-link>
+          </li>
+
           <li>
             <img src="../../../public/img/carrinho.png" alt="Carrinho">
             <router-link to="/carrinho">Carrinho</router-link>

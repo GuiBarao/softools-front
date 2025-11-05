@@ -16,6 +16,11 @@ import MeuPerfil from '@/components/perfil/MeuPerfil.vue'
 
 import CadastrarFerramenta from '@/components/ferramentas/CadastrarFerramenta.vue'
 
+import MinhasFerramentas from '@/components/ferramentas/MinhasFerramentas.vue'
+
+import PagamentoPix from '@/components/pagamento/PagamentoPix.vue'
+
+import HistoricoAlugueis from '@/components/perfil/HistoricoAlugueis.vue'
 
 const routes = [
   { path: '/', 
@@ -58,6 +63,21 @@ const routes = [
     path: '/cadastrar-ferramenta',
     name: 'CadastrarFerramenta',
     component: CadastrarFerramenta
+  },
+  {
+    path: '/minhas-ferramentas',
+    name: 'MinhasFerramentas',
+    component: MinhasFerramentas
+  },
+  {
+    path: '/pagamento',
+    name: 'PagamentoPix',
+    component: PagamentoPix
+  },
+  {
+    path: '/meu-historico',
+    name: 'HistoricoAlugueis',
+    component: HistoricoAlugueis
   }
 ]
 
