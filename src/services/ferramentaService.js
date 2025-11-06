@@ -67,6 +67,15 @@ export const ferramentaService = {
       // Isso é crucial para o axios entender que está vindo um arquivo
       responseType: 'blob' 
     });
-  }
+  },
+
+  /**
+   * Envia uma nova avaliação para uma ferramenta.
+   * ROTA: POST /ferramentas/avaliar
+   * @param {object} payload - O objeto AvaliacaoSchema { id_ferramenta, avaliacao }
+   */
+  avaliarFerramenta(payload) {
+    return apiClient.post('/ferramentas/avaliar', payload);
+  },
  
 };
