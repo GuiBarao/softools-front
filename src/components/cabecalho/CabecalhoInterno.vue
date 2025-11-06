@@ -7,11 +7,6 @@
         </router-link>
       </div>
 
-      <div class="pesquisa">
-        <input type="text" placeholder="Pesquisar..." />
-        <img src="../../../public/img/search.png" alt="icone-lupa" class="icone-lupa" />
-      </div>
-
       <nav class="menu-lateral">
         <ul>
           <li>

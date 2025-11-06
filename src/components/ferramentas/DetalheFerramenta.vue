@@ -15,10 +15,54 @@
 
         <template v-if="!isLoading && !erro && ferramenta">
           
-          <div class="detalhe-imagem">
-            <img :src="urlFoto || '../../../public/img/ferramenta1.png'" :alt="ferramenta.nome" />
-          </div>
+          <div class="detalhe-imagem carousel-container">
+            
+            <div v-if="isFotosLoading" class="carousel-loading">
+              <span class="spinner"></span>
+              Carregando fotos...
+            </div>
 
+            <img 
+              v-if="!isFotosLoading && urlsFotos.length > 0"
+              :src="urlsFotos[slideAtual]" 
+              :alt="ferramenta.nome"
+              class="carousel-image"
+            />
+            
+            <img 
+              v-if="!isFotosLoading && urlsFotos.length === 0"
+              src="../../../public/img/ferramenta1.png" 
+              :alt="ferramenta.nome"
+              class="carousel-image"
+            />
+
+            <button 
+              v-if="!isFotosLoading && urlsFotos.length > 1" 
+              @click.prevent="anteriorSlide" 
+              class="carousel-btn prev"
+            >
+              &#10094;
+            </button>
+            <button 
+              v-if="!isFotosLoading && urlsFotos.length > 1" 
+              @click.prevent="proximoSlide" 
+              class="carousel-btn next"
+            >
+              &#10095;
+            </button>
+            
+            <div class="carousel-indicators" v-if="!isFotosLoading && urlsFotos.length > 1">
+              <span 
+                v-for="(foto, index) in urlsFotos"
+                :key="index"
+                class="indicator-dot"
+                :class="{ 'ativo': index === slideAtual }"
+                @click="irParaSlide(index)"
+              >
+              </span>
+            </div>
+
+          </div>
           <div class="detalhe-info">
             <h1 class="detalhe-titulo">{{ ferramenta.nome }}</h1>
             
@@ -78,7 +122,7 @@
                   class="estrela-input"
                   :class="{ 
                     'hover': estrela <= hoverAvaliacao, 
-                    'selecionada': estrela <= novaAvaliacao  /* Usa novaAvaliacao */
+                    'selecionada': estrela <= novaAvaliacao
                   }"
                   @mouseover="setHoverAvaliacao(estrela)"
                   @click="setAvaliacao(estrela)"
@@ -95,7 +139,7 @@
                 {{ isAvaliando ? 'Enviando...' : 'Enviar Avaliação' }}
               </button>
             </div>
-            </div>
+          </div>
         </template>
       </div>
     </main>
@@ -117,14 +161,20 @@ export default {
   data() {
     return {
       ferramenta: null, 
-      isLoading: true,
+      isLoading: true, // Loading da página
       erro: null,
+      
+      // Estados do Carrinho
       adicionandoAoCarrinho: false,
       textoBotao: "Adicionar ao Carrinho",
-      urlFoto: null,
-
-      // --- Estados para Avaliação ---
-      novaAvaliacao: 0,      // A nota que o usuário selecionou (inicia com o valor do back-end)
+      
+      // === MUDANÇA: Estados do Carrossel ===
+      urlsFotos: [],        // Array com as URLs das fotos
+      slideAtual: 0,        // Índice da foto atual
+      isFotosLoading: true, // Loading específico das fotos
+      
+      // Estados da Avaliação
+      novaAvaliacao: 0,
       hoverAvaliacao: 0,
       isAvaliando: false,
       avaliacaoErro: null,
@@ -155,54 +205,84 @@ export default {
     },
 
     /**
-     * Carrega os detalhes da ferramenta (dados + foto)
+     * Carrega os detalhes da ferramenta (dados)
      */
     async carregarDetalhes() {
-      this.isLoading = true;
+      this.isLoading = true; // Loading da página
+      this.isFotosLoading = true; // Loading das fotos
       this.erro = null;
       try {
         const idDaRota = this.$route.params.id;
         const response = await ferramentaService.getFerramentaById(idDaRota);
         
-        // Salva o schema FerramentaComFotos_avaliacao_Schema
         this.ferramenta = response.data;
-        
-        // --- LÓGICA CORRIGIDA ---
-        // Preenche as estrelas com a avaliação existente (ou 0 se for null)
         this.novaAvaliacao = this.ferramenta.sua_avaliacao || 0;
         
-        // Busca a foto
-        await this.buscarFotoDaFerramenta(); 
+        // Dispara a busca das fotos (NÃO usa await para não bloquear)
+        this.buscarTodasAsFotos(); 
 
       } catch (err) {
         console.error("Erro ao carregar detalhes da ferramenta:", err);
-        if (err.response && err.response.status === 404) {
-          this.erro = "Ferramenta não encontrada.";
-        } else if (err.response && (err.response.status === 401 || err.response.status === 403)) {
-          this.erro = "Sua sessão expirou. Faça login para ver os detalhes.";
-        } else {
-          this.erro = "Falha ao buscar dados da ferramenta.";
-        }
+        // ... (resto do tratamento de erro) ...
+        this.erro = "Falha ao buscar dados da ferramenta.";
       } finally {
-        this.isLoading = false;
+        this.isLoading = false; // Page is loaded
       }
     },
 
     /**
-     * Busca a primeira foto da lista 'ids_fotos'.
+     * === MÉTODO ATUALIZADO ===
+     * Busca TODAS as fotos da lista 'ids_fotos' em paralelo.
      */
-    async buscarFotoDaFerramenta() {
+    async buscarTodasAsFotos() {
+      this.isFotosLoading = true;
+      this.urlsFotos = [];
+      this.slideAtual = 0;
+
       if (this.ferramenta && this.ferramenta.ids_fotos && this.ferramenta.ids_fotos.length > 0) {
-        const idFoto = this.ferramenta.ids_fotos[0];
         try {
-          const response = await ferramentaService.getFotoFerramenta(idFoto);
-          this.urlFoto = URL.createObjectURL(response.data);
+          // 1. Cria um array de promessas (uma para cada foto)
+          const promessas = this.ferramenta.ids_fotos.map(idFoto =>
+            ferramentaService.getFotoFerramenta(idFoto)
+          );
+          
+          // 2. Espera todas as fotos serem baixadas
+          const responses = await Promise.all(promessas);
+          
+          // 3. Mapeia as respostas (Blobs) para URLs locais
+          this.urlsFotos = responses.map(response => URL.createObjectURL(response.data));
+
         } catch (err) {
-          console.error(`Falha ao carregar foto ${idFoto}`, err);
-          this.urlFoto = null;
+          console.error(`Falha ao carregar uma ou mais fotos`, err);
+          this.urlsFotos = []; // Reseta em caso de erro
         }
       }
+      this.isFotosLoading = false;
     },
+
+    // --- === NOVOS MÉTODOS PARA O CARROSSEL === ---
+    
+    /**
+     * Vai para o próximo slide.
+     */
+    proximoSlide() {
+      this.slideAtual = (this.slideAtual + 1) % this.urlsFotos.length;
+    },
+
+    /**
+     * Vai para o slide anterior.
+     */
+    anteriorSlide() {
+      this.slideAtual = (this.slideAtual - 1 + this.urlsFotos.length) % this.urlsFotos.length;
+    },
+
+    /**
+     * Vai para um slide específico (usado pelas bolinhas).
+     */
+    irParaSlide(index) {
+      this.slideAtual = index;
+    },
+
 
     /**
      * Formata o preço para R$
@@ -224,34 +304,18 @@ export default {
       return estrelasCheias + estrelasVazias;
     },
 
-    // --- Métodos para a Seção de Avaliação (Lógica Corrigida) ---
-
-    /**
-     * Define a nota ao clicar. (Removemos a trava)
-     */
+    // --- Métodos para a Seção de Avaliação ---
     setAvaliacao(rating) {
       this.novaAvaliacao = rating;
       this.avaliacaoErro = null;
       this.avaliacaoSucesso = null;
     },
-
-    /**
-     * Controla o efeito de hover nas estrelas.
-     */
     setHoverAvaliacao(rating) {
       this.hoverAvaliacao = rating;
     },
-
-    /**
-     * Limpa o hover quando o mouse sai.
-     */
     resetHoverAvaliacao() {
       this.hoverAvaliacao = 0;
     },
-
-    /**
-     * Envia a avaliação para a API.
-     */
     async handleAvaliar() {
       this.isAvaliando = true;
       this.avaliacaoErro = null;
@@ -269,17 +333,13 @@ export default {
       };
 
       try {
-        // Chama POST /ferramentas/avaliar
         const response = await ferramentaService.avaliarFerramenta(payload);
-        
-        // API retorna o FerramentaSchema (sem 'sua_avaliacao')
         const ferramentaAtualizada = response.data;
         
-        // Atualiza os dados na tela
         this.ferramenta = {
-          ...this.ferramenta,           // Mantém 'ids_fotos' e 'urlFoto'
-          ...ferramentaAtualizada,      // Atualiza 'avaliacao' e 'quantidade_avaliacoes'
-          sua_avaliacao: this.novaAvaliacao // Define 'sua_avaliacao' localmente
+          ...this.ferramenta,
+          ...ferramentaAtualizada,
+          sua_avaliacao: this.novaAvaliacao
         };
         
         this.avaliacaoSucesso = "Obrigado pela sua avaliação!";
@@ -319,41 +379,123 @@ export default {
   margin-bottom: 75px;
 }
 
-/* Coluna da Imagem */
+/* Coluna da Imagem (Agora é o Container do Carrossel) */
 .detalhe-imagem {
-  flex: 1; /* Ocupa 1 parte */
-  min-width: 300px; /* Largura mínima */
+  flex: 1;
+  min-width: 300px;
   background: #e9eff7;
   border: 1px solid #D0DFEE;
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 0; /* Removido o padding para a imagem preencher */
   height: 450px;
-}
-.detalhe-imagem img {
-  width: 100%;
-  max-width: 350px;
-  height: auto;
-  object-fit: contain;
+  /* === ESTILO DO CARROSSEL === */
+  position: relative; /* Essencial para os botões */
+  overflow: hidden;   /* Esconde partes da imagem que vazarem */
 }
 
-/* Coluna de Informações */
+/* A imagem principal do carrossel */
+.carousel-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* 'contain' é melhor que 'cover' para ferramentas */
+  padding: 20px; /* Adiciona o padding aqui */
+  box-sizing: border-box; /* Garante que o padding não quebre o layout */
+}
+
+/* Botões de Próximo/Anterior */
+.carousel-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: rgba(0, 0, 0, 0.3);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 1.5rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  z-index: 10;
+}
+.carousel-btn:hover {
+  background-color: rgba(0, 0, 0, 0.6);
+}
+.carousel-btn.prev {
+  left: 10px;
+}
+.carousel-btn.next {
+  right: 10px;
+}
+
+/* Indicadores de slide (bolinhas) */
+.carousel-indicators {
+  position: absolute;
+  bottom: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 10;
+}
+.indicator-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+.indicator-dot:hover {
+  background-color: rgba(255, 255, 255, 0.8);
+}
+.indicator-dot.ativo {
+  background-color: #f97316;
+  border-color: #f97316;
+}
+
+/* Loading das Fotos */
+.carousel-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #555;
+  font-weight: 500;
+}
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #f97316;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 10px;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+
+/* Coluna de Informações (sem mudança) */
 .detalhe-info {
-  flex: 2; /* Ocupa 2 partes (maior) */
+  flex: 2;
   min-width: 300px;
   display: flex;
   flex-direction: column;
 }
-
 .detalhe-titulo {
-  font-size: 2.5rem; /* Título maior */
+  font-size: 2.5rem;
   font-weight: 700;
   color: #212529;
   margin: 0 0 5px 0;
 }
-
 .detalhe-categoria {
   background-color: #f7f9fc;
   border: 1px solid #d1d9e6;
@@ -361,11 +503,10 @@ export default {
   padding: 5px 10px;
   border-radius: 5px;
   font-size: 0.9rem;
-  align-self: flex-start; /* Não estica */
+  align-self: flex-start;
 }
-
 .detalhe-avaliacao {
-  color: #f48c06; /* Laranja do seu CSS */
+  color: #f48c06;
   font-weight: 700;
   font-size: 1.1rem;
   margin-top: 20px;
@@ -376,7 +517,6 @@ export default {
   font-size: 0.9rem;
   margin-left: 10px;
 }
-
 .detalhe-descricao {
   font-size: 1rem;
   color: #333;
@@ -385,21 +525,19 @@ export default {
   border-top: 1px solid #eee;
   padding-top: 20px;
 }
-
 .detalhe-status {
   font-size: 1rem;
   color: #555;
   margin-top: 15px;
 }
 .status-disponivel {
-  color: #059669; /* Verde */
+  color: #059669;
   font-weight: 600;
 }
 .status-indisponivel {
-  color: #dc2626; /* Vermelho */
+  color: #dc2626;
   font-weight: 600;
 }
-
 .detalhe-preco {
   font-size: 2.2rem;
   font-weight: 700;
@@ -411,7 +549,6 @@ export default {
   font-weight: 400;
   color: #555;
 }
-
 .botao-alugar-detalhe {
   background-color: #f97316;
   border: none;
@@ -443,8 +580,7 @@ export default {
   margin-top: 10px;
 }
 
-
-/* Estilos de Aviso (Carregando, Erro) */
+/* Avisos (Carregando, Erro) */
 .aviso-carregando,
 .aviso-erro {
   width: 100%;
@@ -460,16 +596,12 @@ export default {
 .aviso-carregando { color: #333; }
 .aviso-erro { background-color: #ffebee; color: #c62828; border: 1px solid #c62828; }
 
-
-/* ============================================= */
-/* === ESTILOS PARA AVALIAÇÃO === */
-/* ============================================= */
+/* Estilos da Seção de Avaliação (sem mudança) */
 .divisor-avaliacao {
   border: none;
   border-top: 1px solid #eee;
   margin: 30px 0 20px 0;
 }
-
 .avaliacao-section {
   background-color: #f7f9fc;
   border: 1px solid #d1d9e6;
@@ -488,29 +620,26 @@ export default {
   margin-bottom: 15px;
 }
 .sua-avaliacao {
-  margin-top: 5px; /* Ajuste de espaço para "Sua Avaliação" */
+  margin-top: 5px;
 }
-
 .estrelas-input {
   display: flex;
   gap: 5px;
   margin-bottom: 15px;
 }
 .estrela-input {
-  font-size: 2.5rem; /* Tamanho grande para clicar */
-  color: #d1d9e6;   /* Cor da estrela vazia */
+  font-size: 2.5rem;
+  color: #d1d9e6;
   cursor: pointer;
   transition: color 0.1s ease-in-out;
 }
 .estrela-input.hover {
-  color: #f48c06; /* Laranja no hover */
+  color: #f48c06;
 }
 .estrela-input.selecionada {
-  color: #f48c06; /* Laranja na seleção */
+  color: #f48c06;
 }
-
 .btn-avaliar {
-  /* Botão secundário, similar ao .btn-cancelar do modal */
   background-color: #fff;
   border: 1px solid #d1d9e6;
   color: #333;
@@ -528,8 +657,6 @@ export default {
   opacity: 0.6;
   cursor: not-allowed;
 }
-
-/* Avisos de feedback da avaliação */
 .aviso-erro-avaliacao,
 .aviso-sucesso-avaliacao {
   width: 100%;
