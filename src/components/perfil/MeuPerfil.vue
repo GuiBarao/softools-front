@@ -5,7 +5,7 @@
     <main>
       <div class="container perfil-container">
         
-        <div v...if="isLoading" class="aviso-carregando">
+        <div v-if="isLoading" class="aviso-carregando">
           Carregando seu perfil...
         </div>
 
@@ -76,7 +76,8 @@
 
 <script>
 import CabecalhoInterno from "../cabecalho/CabecalhoInterno";
-import { usuarioService } from "@/services/usuarioService";
+// Corrigindo o caminho para ../../ (baseado no seu 'CabecalhoInterno')
+import { usuarioService } from "../../services/usuarioService";
 
 export default {
   name: "MeuPerfil",
@@ -217,13 +218,12 @@ export default {
 
         // 4. Faz o "logout"
         localStorage.clear();
-        // Opcional: Limpar o header do axios se você o setou globalmente
-        // delete apiClient.defaults.headers.common['Authorization'];
         
         // 5. Redireciona para a página inicial
         this.$router.push('/');
 
-      } catch (err) {
+      } catch (err)
+ {
         console.error("Erro ao excluir conta:", err);
         this.erro = "Não foi possível excluir sua conta. Tente novamente.";
         this.isUpdating = false;
